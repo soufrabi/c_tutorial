@@ -91,25 +91,20 @@ int verify_knownhost(ssh_session session) {
     return 0;
 }
 
-int main() {
+int main(int argc, char **argv) {
     ssh_session my_ssh_session;
     int verbosity = SSH_LOG_PROTOCOL;
     int port = 22;
-    char username[20];
+    char *username;
     char *password;
     char *target_host;
     int rc;
 
-    ssh_key priv_key ;
+    ssh_key priv_key;
     ssh_key pub_key;
 
-    printf("Username : ");
-    if(fgets(username,sizeof(username),stdin) == NULL){
-        fprintf(stderr, "Failed to get username\n");
-        return -1;
-
-    }
-    target_host = strdup("localhost");
+    username =  strdup(argv[1]);
+    target_host = strdup(argv[2]);
 
     my_ssh_session = ssh_new();
     if (my_ssh_session == NULL) {
@@ -137,20 +132,39 @@ int main() {
     /* password = getpass("Password : "); */
 
     /* rc = ssh_userauth_password(my_ssh_session, NULL, password); */
-    /* rc = ssh_pki_import_privkey_file("path to priv_key", NULL, NULL, NULL, &priv_key); */
+    /* rc = ssh_pki_import_privkey_file("path to priv_key", NULL, NULL, NULL,
+     * &priv_key); */
     /* rc = ssh_userauth_publickey(my_ssh_session, NULL, priv_key); */
     /* rc = ssh_userauth_publickey_auto(my_ssh_session, NULL, NULL); */
 
+    /* if (rc != SSH_AUTH_SUCCESS) { */
+    /*     fprintf(stderr, "Error authenticatiing with password: %s\n", */
+    /*             ssh_get_error(my_ssh_session)); */
+    /*     ssh_disconnect(my_ssh_session); */
+    /*     ssh_free(my_ssh_session); */
+    /*     exit(-1); */
+    /* } */
 
-    if (rc != SSH_AUTH_SUCCESS) {
-        fprintf(stderr, "Error authenticatiing with password: %s\n",
-                ssh_get_error(my_ssh_session));
-        ssh_disconnect(my_ssh_session);
-        ssh_free(my_ssh_session);
-        exit(-1);
+    rc = ssh_pki_import_pubkey_file("/home/test-user/.ssh/id1.pub", &pub_key);
+    if(rc ==SSH_OK){
+        printf("Imported public key\n");
     }
 
+    rc = ssh_userauth_try_publickey(my_ssh_session,NULL,pub_key);
+    if (rc == SSH_AUTH_SUCCESS){
+        printf("Server accepts public key\n");
+    }
 
+    rc = ssh_pki_import_privkey_file("/home/test-user/.ssh/id1",NULL,NULL,NULL, &priv_key);
+    if(rc == SSH_OK){
+        printf("Imported private key\n");
+    }
+
+    rc = ssh_userauth_publickey(my_ssh_session,NULL,priv_key);
+    if(rc == SSH_AUTH_SUCCESS){
+        printf("Public key authentication successful\n");
+
+    }
 
     ssh_disconnect(my_ssh_session);
     ssh_free(my_ssh_session);
